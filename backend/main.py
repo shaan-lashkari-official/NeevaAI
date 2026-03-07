@@ -12,7 +12,13 @@ origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://neeva-ai.vercel.app",
+    "https://neevaai.vercel.app",
 ]
+
+import os
+_extra_origin = os.getenv("FRONTEND_URL")
+if _extra_origin:
+    origins.append(_extra_origin)
 
 app.add_middleware(
     CORSMiddleware,
