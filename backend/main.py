@@ -5,7 +5,7 @@ from app.core.firebase_admin import init_firebase
 # Initialize Firebase on startup
 init_firebase()
 
-app = FastAPI(title="Neeva API", description="AI Mental Wellness Companion API")
+app = FastAPI(title="Neeva API", description="AI Mental Wellness Companion API", redirect_slashes=False)
 
 # CORS Configuration
 origins = [

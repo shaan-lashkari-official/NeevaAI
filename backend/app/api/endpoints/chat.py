@@ -17,7 +17,7 @@ class ChatResponse(BaseModel):
     content: str
     created_at: Any = None
 
-@router.post("/", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse)
 def chat_with_neeva(
     chat_request: ChatRequest,
     current_user: dict = Depends(get_current_user),
