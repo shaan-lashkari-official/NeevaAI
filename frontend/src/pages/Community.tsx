@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, MessageCircle, Heart, Send, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,13 +11,6 @@ import {
     hasUserLikedPost,
     firestoreTimestampToDate,
 } from '@/lib/firestore';
-
-interface Group {
-    id: string;
-    name: string;
-    description: string;
-    post_count: number;
-}
 
 interface Post {
     id: string;
@@ -135,7 +128,7 @@ const Community = () => {
         });
     };
 
-    const selectedGroupData = groups?.find((g: any) => g.id === selectedGroup);
+    const selectedGroupData = groups?.find((g: any) => g.id === selectedGroup) as any;
 
     const formatTime = (ts: any) => {
         const date = firestoreTimestampToDate(ts);

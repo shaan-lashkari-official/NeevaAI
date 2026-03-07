@@ -4,7 +4,7 @@ import { Send, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getChatMessages, firestoreTimestampToDate } from '@/lib/firestore';
+import { getChatMessages } from '@/lib/firestore';
 
 const Chat = () => {
     const { user } = useAuth();
