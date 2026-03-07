@@ -1,20 +1,25 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
     LayoutDashboard,
     Smile,
     Flower2,
     MessageCircle,
     AlertCircle,
+    Users,
     Settings,
     LogOut,
-    Sparkles
+    Sparkles,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import NotificationManager from './NotificationManager';
 
 const Layout = () => {
     const { logout, user } = useAuth();
+    const { resolvedTheme, setTheme } = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -24,6 +29,7 @@ const Layout = () => {
         { path: '/wellness', icon: Flower2, label: 'Wellness' },
         { path: '/chat', icon: MessageCircle, label: 'Chat' },
         { path: '/crisis', icon: AlertCircle, label: 'Crisis' },
+        { path: '/community', icon: Users, label: 'Community' },
         { path: '/settings', icon: Settings, label: 'Settings' },
     ];
 
@@ -33,7 +39,7 @@ const Layout = () => {
     };
 
     return (
-        <div className="min-h-screen gradient-sky selection:bg-purple-200">
+        <div className="min-h-screen gradient-sky selection:bg-purple-200 dark:selection:bg-purple-800">
             <NotificationManager />
             {/* Top Glassmorphic Navigation - Floating Pill */}
             <nav className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4">
@@ -44,13 +50,13 @@ const Layout = () => {
                         <div className="w-10 h-10 rounded-full gradient-purple flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
                             <Sparkles className="w-5 h-5 text-white" />
                         </div>
-                        <span className="font-serif font-bold text-2xl tracking-tight hidden md:block text-gray-800">
+                        <span className="font-serif font-bold text-2xl tracking-tight hidden md:block text-gray-800 dark:text-gray-100">
                             Neeva
                         </span>
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center bg-gray-100/50 rounded-full p-1">
+                    <div className="hidden md:flex items-center bg-gray-100/50 dark:bg-white/5 rounded-full p-1">
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
@@ -63,14 +69,14 @@ const Layout = () => {
                                         flex items-center gap-2 px-5 py-2.5 rounded-full
                                         transition-all duration-300 font-medium text-sm
                                         ${isActive
-                                            ? 'text-gray-900'
-                                            : 'text-gray-500 hover:text-gray-900 hover:bg-white/60'
+                                            ? 'text-gray-900 dark:text-gray-100'
+                                            : 'text-gray-500 hover:text-gray-900 hover:bg-white/60 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10'
                                         }
                                     `}>
                                         {isActive && (
                                             <motion.div
                                                 layoutId="activeNavPill"
-                                                className="absolute inset-0 bg-white rounded-full shadow-sm border border-gray-200/50"
+                                                className="absolute inset-0 bg-white dark:bg-white/10 rounded-full shadow-sm border border-gray-200/50 dark:border-white/10"
                                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                             />
                                         )}
@@ -86,17 +92,24 @@ const Layout = () => {
 
                     {/* User Menu */}
                     <div className="flex items-center gap-2 px-2">
-                        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-white/50 rounded-full border border-white/50">
+                        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-white/10 rounded-full border border-white/50 dark:border-white/10">
                             <div className="w-8 h-8 rounded-full gradient-peach flex items-center justify-center text-white font-serif italic text-sm shadow-md">
                                 {user?.name?.charAt(0).toUpperCase() || 'U'}
                             </div>
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {user?.name || 'User'}
                             </span>
                         </div>
                         <button
+                            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-300"
+                            title="Toggle theme"
+                        >
+                            {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        </button>
+                        <button
                             onClick={handleLogout}
-                            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all duration-300"
+                            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-all duration-300"
                             title="Logout"
                         >
                             <LogOut className="w-5 h-5" />
@@ -121,7 +134,7 @@ const Layout = () => {
                                         p-3 rounded-2xl transition-all duration-300
                                         ${isActive
                                             ? 'text-purple-600 -translate-y-2'
-                                            : 'text-gray-400'
+                                            : 'text-gray-400 dark:text-gray-500'
                                         }
                                     `}>
                                         {isActive && (

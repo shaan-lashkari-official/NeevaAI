@@ -87,16 +87,16 @@ const NotificationManager = () => {
                 >
                     <div className="glass-strong p-4 rounded-3xl shadow-2xl border border-white/50 flex items-start gap-4 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500" />
-                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 shrink-0">
                             <notification.icon size={20} />
                         </div>
                         <div className="flex-1 pt-1">
-                            <h4 className="font-bold text-gray-900 text-sm mb-1">{notification.title}</h4>
-                            <p className="text-sm text-gray-600 leading-relaxed">{notification.message}</p>
+                            <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">{notification.title}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{notification.message}</p>
                         </div>
                         <button
                             onClick={() => setNotification(null)}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         >
                             <X size={18} />
                         </button>

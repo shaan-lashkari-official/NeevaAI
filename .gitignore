@@ -20,6 +20,10 @@ venv.bak/
 dist/
 build/
 
+# Firebase
+firebase-service-account.json
+**/firebase-service-account.json
+
 # Database
 *.db
 *.sqlite

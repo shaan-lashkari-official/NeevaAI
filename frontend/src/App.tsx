@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -11,6 +12,7 @@ import Chat from '@/pages/Chat';
 import Crisis from '@/pages/Crisis';
 import Settings from '@/pages/Settings';
 import WellnessGames from '@/pages/WellnessGames';
+import Community from '@/pages/Community';
 import OnboardingModal from '@/components/OnboardingModal';
 
 const queryClient = new QueryClient();
@@ -36,6 +38,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
+    <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
@@ -56,12 +59,14 @@ function App() {
               <Route path="wellness/games" element={<WellnessGames />} />
               <Route path="chat" element={<Chat />} />
               <Route path="crisis" element={<Crisis />} />
+              <Route path="community" element={<Community />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
         </Router>
       </AuthProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

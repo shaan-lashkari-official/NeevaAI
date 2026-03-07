@@ -1,8 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '@/lib/api';
+import type { User as FirebaseUser } from 'firebase/auth';
+import {
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signInWithPopup,
+    signOut,
+} from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
+import { getUserDoc, createUserDoc } from '@/lib/firestore';
 
 interface User {
-    id: number;
+    uid: string;
     email: string;
     name: string;
     onboarding_completed?: boolean;
@@ -13,62 +22,92 @@ interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, name: string) => Promise<void>;
-    logout: () => void;
-    fetchUser: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
+    logout: () => Promise<void>;
+    refreshUserProfile: () => Promise<void>;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function loadUserProfile(firebaseUser: FirebaseUser): Promise<User> {
+    const doc = await getUserDoc(firebaseUser.uid);
+    if (doc) {
+        return {
+            uid: firebaseUser.uid,
+            email: (doc as any).email || firebaseUser.email || '',
+            name: (doc as any).name || firebaseUser.displayName || '',
+            onboarding_completed: (doc as any).onboarding_completed || false,
+            onboarding_data: (doc as any).onboarding_data || null,
+        };
+    }
+    // User doc doesn't exist yet (Google sign-in first time) — create it
+    const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User';
+    await createUserDoc(firebaseUser.uid, {
+        email: firebaseUser.email || '',
+        name,
+    });
+    return {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name,
+        onboarding_completed: false,
+        onboarding_data: null,
+    };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            fetchUser();
-        } else {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                try {
+                    const profile = await loadUserProfile(firebaseUser);
+                    setUser(profile);
+                } catch (err) {
+                    console.error('Failed to load user profile:', err);
+                    // Don't sign user out if we already have a profile
+                    // (Firestore might be temporarily unavailable)
+                    setUser((prev) => prev);
+                }
+            } else {
+                setUser(null);
+            }
             setIsLoading(false);
-        }
+        });
+        return unsubscribe;
     }, []);
 
-    const fetchUser = async () => {
-        try {
-            const response = await api.get('/users/me');
-            setUser(response.data);
-        } catch (error) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const login = async (email: string, password: string) => {
-        const formData = new FormData();
-        formData.append('username', email);
-        formData.append('password', password);
-
-        const response = await api.post('/auth/login', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
-
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('refresh_token', response.data.refresh_token);
-        await fetchUser();
+        await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged will handle setting user
     };
 
     const register = async (email: string, password: string, name: string) => {
-        await api.post('/auth/register', { email, password, name });
-        await login(email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserDoc(cred.user.uid, { email, name });
+        // onAuthStateChanged will handle setting user
     };
 
-    const logout = () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+    const loginWithGoogle = async () => {
+        await signInWithPopup(auth, googleProvider);
+        // onAuthStateChanged will handle setting user + auto-creating doc
+    };
+
+    const logout = async () => {
+        await signOut(auth);
         setUser(null);
+    };
+
+    const refreshUserProfile = async () => {
+        const firebaseUser = auth.currentUser;
+        if (firebaseUser) {
+            const profile = await loadUserProfile(firebaseUser);
+            setUser(profile);
+        }
     };
 
     return (
@@ -77,8 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 user,
                 login,
                 register,
+                loginWithGoogle,
                 logout,
-                fetchUser,
+                refreshUserProfile,
                 isAuthenticated: !!user,
                 isLoading,
             }}

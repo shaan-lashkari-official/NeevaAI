@@ -1,16 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.middleware.error_logging import ErrorLoggingMiddleware
+from app.core.firebase_admin import init_firebase
+
+# Initialize Firebase on startup
+init_firebase()
 
 app = FastAPI(title="Neeva API", description="AI Mental Wellness Companion API")
 
-# Add error logging middleware FIRST
-app.add_middleware(ErrorLoggingMiddleware)
-
 # CORS Configuration
 origins = [
-    "http://localhost:5173",  # Vite default port
+    "http://localhost:5173",
     "http://localhost:3000",
+    "https://neeva-ai.vercel.app",
 ]
 
 app.add_middleware(
@@ -22,7 +23,6 @@ app.add_middleware(
 )
 
 from app.api.api import api_router
-
 app.include_router(api_router, prefix="/api")
 
 @app.get("/")

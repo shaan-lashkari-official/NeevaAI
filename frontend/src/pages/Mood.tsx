@@ -1,42 +1,40 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Frown, Meh, Smile, SmilePlus, Laugh, TrendingUp, Calendar, Sparkles, ArrowRight } from 'lucide-react';
-import api from '@/lib/api';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { addMoodLog, getMoodLogs, firestoreTimestampToDate } from '@/lib/firestore';
+import { computeMoodStats } from '@/lib/stats';
 
 const Mood = () => {
+    const { user } = useAuth();
     const [selectedMood, setSelectedMood] = useState<number | null>(null);
     const [notes, setNotes] = useState('');
     const queryClient = useQueryClient();
 
-    const { data: moodStats, refetch: refetchStats } = useQuery({
-        queryKey: ['moodStats'],
-        queryFn: async () => {
-            const response = await api.get('/mood/stats');
-            return response.data;
-        },
+    const { data: moodLogs } = useQuery({
+        queryKey: ['moodLogs', user?.uid],
+        queryFn: () => getMoodLogs(user!.uid, 10),
+        enabled: !!user?.uid,
     });
 
-    const { data: moodLogs, refetch: refetchLogs } = useQuery({
-        queryKey: ['moodLogs'],
-        queryFn: async () => {
-            const response = await api.get('/mood?limit=10');
-            return response.data;
-        },
+    const { data: allLogs } = useQuery({
+        queryKey: ['allMoodLogs', user?.uid],
+        queryFn: () => getMoodLogs(user!.uid),
+        enabled: !!user?.uid,
     });
+
+    const moodStats = allLogs ? computeMoodStats(allLogs as any) : null;
 
     const logMoodMutation = useMutation({
         mutationFn: async (data: { mood_level: number; notes: string }) => {
-            const response = await api.post('/mood', data);
-            return response.data;
+            return addMoodLog(user!.uid, data);
         },
         onSuccess: async () => {
-            // Explicitly refetch to ensure instant updates
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['moodStats'] }),
                 queryClient.invalidateQueries({ queryKey: ['moodLogs'] }),
-                refetchStats(),
-                refetchLogs()
+                queryClient.invalidateQueries({ queryKey: ['allMoodLogs'] }),
+                queryClient.invalidateQueries({ queryKey: ['moodStats'] }),
             ]);
             setSelectedMood(null);
             setNotes('');
@@ -65,10 +63,10 @@ const Mood = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center md:text-left"
             >
-                <h1 className="text-5xl md:text-6xl font-serif font-bold text-gray-900 mb-4 tracking-tight">
+                <h1 className="text-5xl md:text-6xl font-serif font-bold text-gray-900 dark:text-gray-100 mb-4 tracking-tight">
                     Mood Tracker
                 </h1>
-                <p className="text-xl text-gray-500 font-light">
+                <p className="text-xl text-gray-500 dark:text-gray-400 font-light">
                     Reflect on your day and track your emotional journey.
                 </p>
             </motion.div>
@@ -85,7 +83,7 @@ const Mood = () => {
                     <div className="glass-strong rounded-[2.5rem] p-8 md:p-10 shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100/50 rounded-full blur-3xl -z-10" />
 
-                        <h2 className="text-2xl font-serif font-bold text-gray-900 mb-8 flex items-center gap-3">
+                        <h2 className="text-2xl font-serif font-bold text-gray-900 dark:text-gray-100 mb-8 flex items-center gap-3">
                             <Sparkles className="w-6 h-6 text-purple-500" />
                             How are you feeling right now?
                         </h2>
@@ -99,11 +97,11 @@ const Mood = () => {
                                         onClick={() => setSelectedMood(mood.level)}
                                         className={`group relative flex flex-col items-center gap-4 p-4 rounded-3xl transition-all duration-300 ${isSelected
                                             ? `bg-gradient-to-br ${mood.gradient} text-white shadow-xl ${mood.shadow} scale-110`
-                                            : 'bg-white/50 hover:bg-white hover:shadow-lg hover:-translate-y-1'
+                                            : 'bg-white/50 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 hover:shadow-lg hover:-translate-y-1'
                                             }`}
                                     >
                                         <span className="text-4xl filter drop-shadow-sm transition-transform duration-300 group-hover:scale-110">{mood.emoji}</span>
-                                        <span className={`text-xs font-bold tracking-wide uppercase ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-bold tracking-wide uppercase ${isSelected ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                             {mood.label}
                                         </span>
                                     </button>
@@ -116,11 +114,11 @@ const Mood = () => {
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 placeholder="Add a note about your feelings... (optional)"
-                                className="w-full px-6 py-5 bg-white/60 border-none rounded-3xl focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all text-gray-700 placeholder-gray-400 resize-none text-lg"
+                                className="w-full px-6 py-5 bg-white/60 dark:bg-white/10 border-none rounded-3xl focus:ring-2 focus:ring-purple-200 focus:bg-white dark:focus:bg-white/15 transition-all text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none text-lg"
                                 rows={3}
                                 maxLength={500}
                             />
-                            <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-medium">
+                            <div className="absolute bottom-4 right-4 text-xs text-gray-400 dark:text-gray-500 font-medium">
                                 {notes.length}/500
                             </div>
                         </div>
@@ -142,30 +140,31 @@ const Mood = () => {
 
                     {/* Recent Entries List */}
                     <div className="glass rounded-[2.5rem] p-8 md:p-10">
-                        <h2 className="text-xl font-serif font-bold text-gray-900 mb-6">Recent Reflections</h2>
+                        <h2 className="text-xl font-serif font-bold text-gray-900 dark:text-gray-100 mb-6">Recent Reflections</h2>
                         <div className="space-y-4">
                             {moodLogs?.map((log: any) => {
                                 const mood = moods.find((m) => m.level === log.mood_level);
+                                const date = firestoreTimestampToDate(log.created_at);
                                 return (
-                                    <div key={log.id} className="group flex items-start gap-5 p-5 bg-white/40 rounded-3xl hover:bg-white/80 transition-all duration-300 hover:shadow-md border border-transparent hover:border-purple-100">
+                                    <div key={log.id} className="group flex items-start gap-5 p-5 bg-white/40 dark:bg-white/5 rounded-3xl hover:bg-white/80 dark:hover:bg-white/10 transition-all duration-300 hover:shadow-md border border-transparent hover:border-purple-100 dark:hover:border-purple-500/20">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-gradient-to-br ${mood?.gradient} text-white shadow-md`}>
                                             {mood?.emoji}
                                         </div>
                                         <div className="flex-1 min-w-0 pt-1">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="font-bold text-gray-900">{mood?.label}</span>
-                                                <span className="text-xs font-medium text-gray-400 bg-white px-3 py-1 rounded-full">
-                                                    {new Date(log.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                <span className="font-bold text-gray-900 dark:text-gray-100">{mood?.label}</span>
+                                                <span className="text-xs font-medium text-gray-400 dark:text-gray-500 bg-white dark:bg-white/10 px-3 py-1 rounded-full">
+                                                    {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </span>
                                             </div>
-                                            {log.notes && <p className="text-gray-600 leading-relaxed">{log.notes}</p>}
+                                            {log.notes && <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{log.notes}</p>}
                                         </div>
                                     </div>
                                 );
                             })}
                             {(!moodLogs || moodLogs.length === 0) && (
                                 <div className="text-center py-12 opacity-50">
-                                    <p className="text-gray-500 font-serif italic">No entries yet. Start your journey above.</p>
+                                    <p className="text-gray-500 dark:text-gray-400 font-serif italic">No entries yet. Start your journey above.</p>
                                 </div>
                             )}
                         </div>
@@ -197,22 +196,22 @@ const Mood = () => {
                     {/* Secondary Stats */}
                     <div className="grid grid-cols-1 gap-4">
                         <div className="glass p-6 rounded-[2rem] flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600">
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Total Entries</p>
-                                <p className="text-3xl font-serif font-bold text-gray-900">{moodStats?.total_entries || 0}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Total Entries</p>
+                                <p className="text-3xl font-serif font-bold text-gray-900 dark:text-gray-100">{moodStats?.total_entries || 0}</p>
                             </div>
                         </div>
 
                         <div className="glass p-6 rounded-[2rem] flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600">
+                            <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600">
                                 <span className="text-2xl">🔥</span>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Current Streak</p>
-                                <p className="text-3xl font-serif font-bold text-gray-900">{moodStats?.streak || 0} <span className="text-sm font-sans font-normal text-gray-400">days</span></p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Current Streak</p>
+                                <p className="text-3xl font-serif font-bold text-gray-900 dark:text-gray-100">{moodStats?.streak || 0} <span className="text-sm font-sans font-normal text-gray-400 dark:text-gray-500">days</span></p>
                             </div>
                         </div>
                     </div>

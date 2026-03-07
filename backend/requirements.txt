@@ -1,15 +1,7 @@
 fastapi
 uvicorn
-sqlalchemy
 pydantic
-pydantic-settings
-python-jose[cryptography]
-passlib[bcrypt]
-cryptography
 groq
 python-multipart
 python-dotenv
-psycopg2-binary
-dnspython==2.8.0
-email-validator==2.3.0
-alembic
+firebase-admin

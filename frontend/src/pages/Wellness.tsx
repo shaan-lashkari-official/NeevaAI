@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Play, Pause, X, Volume2, VolumeX, Clock } from 'lucide-react';
-import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { addExerciseCompletion } from '@/lib/firestore';
 
 // Declare YouTube API types
 declare global {
@@ -21,7 +22,7 @@ const exercises = [
             description: 'Simple breath awareness to calm your mind',
             gradient: 'from-blue-400 to-cyan-400',
             emoji: '🌬️',
-            youtubeId: 'lFcSrYw-ARY' // Relaxing Music - Meditation Music
+            youtubeId: 'lFcSrYw-ARY'
         },
         {
             id: 'body-scan',
@@ -31,7 +32,7 @@ const exercises = [
             description: 'Progressive body awareness and relaxation',
             gradient: 'from-purple-400 to-pink-400',
             emoji: '🧘',
-            youtubeId: '1ZYbU82GVz4' // Deep Meditation Music
+            youtubeId: '1ZYbU82GVz4'
         },
         {
             id: 'mindful-awareness',
@@ -41,7 +42,7 @@ const exercises = [
             description: 'Present moment meditation practice',
             gradient: 'from-violet-400 to-purple-400',
             emoji: '🌟',
-            youtubeId: 'M0r0PuUfT14' // Peaceful Meditation
+            youtubeId: 'M0r0PuUfT14'
         },
         {
             id: 'loving-kindness',
@@ -51,7 +52,7 @@ const exercises = [
             description: 'Compassion cultivation meditation',
             gradient: 'from-pink-400 to-rose-400',
             emoji: '💝',
-            youtubeId: 'z6X5oEIg6Ak' // Calming Music
+            youtubeId: 'z6X5oEIg6Ak'
         },
         {
             id: 'mountain-meditation',
@@ -61,7 +62,7 @@ const exercises = [
             description: 'Stability and strength visualization',
             gradient: 'from-emerald-400 to-teal-400',
             emoji: '⛰️',
-            youtubeId: 'lTRiuFIWV54' // Nature Sounds
+            youtubeId: 'lTRiuFIWV54'
         },
         {
             id: 'ocean-breathing',
@@ -71,11 +72,12 @@ const exercises = [
             description: 'Rhythmic breathing with ocean visualization',
             gradient: 'from-cyan-400 to-blue-400',
             emoji: '🌊',
-            youtubeId: 'UfcAVejslrU' // Ocean Waves
+            youtubeId: 'UfcAVejslrU'
         },
     ];
 
 const Wellness = () => {
+    const { user } = useAuth();
     const [activeExercise, setActiveExercise] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
@@ -124,8 +126,7 @@ const Wellness = () => {
 
     const completeExerciseMutation = useMutation({
         mutationFn: async (data: { exercise_id: string; duration_completed: number }) => {
-            const response = await api.post('/exercises', data);
-            return response.data;
+            return addExerciseCompletion(user!.uid, data);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['exerciseStats'] });
@@ -139,7 +140,6 @@ const Wellness = () => {
 
     const handleComplete = () => {
         if (activeExerciseData) {
-            // Since this is only called when timer ends, duration completed is the full duration
             completeExerciseMutation.mutate({
                 exercise_id: activeExerciseData.id,
                 duration_completed: activeExerciseData.duration * 60,
@@ -217,8 +217,6 @@ const Wellness = () => {
         return () => clearInterval(interval);
     }, [isPlaying]);
 
-
-
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -247,10 +245,10 @@ const Wellness = () => {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
             >
-                <h1 className="text-5xl md:text-6xl font-serif font-bold mb-3 text-gray-900">
+                <h1 className="text-5xl md:text-6xl font-serif font-bold mb-3 text-gray-900 dark:text-gray-100">
                     Wellness Exercises
                 </h1>
-                <p className="text-xl text-gray-500 font-light">Guided meditations and breathing exercises with calming music</p>
+                <p className="text-xl text-gray-500 dark:text-gray-400 font-light">Guided meditations and breathing exercises with calming music</p>
             </motion.div>
 
             {/* Exercise Grid */}
@@ -271,13 +269,13 @@ const Wellness = () => {
                                 <div className={`w-14 h-14 bg-gradient-to-br ${exercise.gradient} rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
                                     {exercise.emoji}
                                 </div>
-                                <span className="px-4 py-1.5 bg-white/60 text-gray-700 text-xs font-bold rounded-full uppercase tracking-wide">
+                                <span className="px-4 py-1.5 bg-white/60 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-full uppercase tracking-wide">
                                     {exercise.duration} min
                                 </span>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{exercise.title}</h3>
-                            <p className="text-sm text-gray-600 mb-6 leading-relaxed">{exercise.description}</p>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{exercise.title}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">{exercise.description}</p>
 
                             <button
                                 onClick={() => {
@@ -316,9 +314,9 @@ const Wellness = () => {
                             {/* Close Button */}
                             <button
                                 onClick={handleClose}
-                                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/50 hover:bg-white/80 flex items-center justify-center transition-all"
+                                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 flex items-center justify-center transition-all"
                             >
-                                <X className="w-5 h-5 text-gray-700" />
+                                <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                             </button>
 
                             {/* Exercise Info */}
@@ -326,21 +324,21 @@ const Wellness = () => {
                                 <div className={`w-20 h-20 bg-gradient-to-br ${activeExerciseData.gradient} rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-xl`}>
                                     {activeExerciseData.emoji}
                                 </div>
-                                <h2 className="text-3xl font-serif font-bold text-gray-900 mb-2">{activeExerciseData.title}</h2>
-                                <p className="text-gray-600">{activeExerciseData.description}</p>
+                                <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-gray-100 mb-2">{activeExerciseData.title}</h2>
+                                <p className="text-gray-600 dark:text-gray-400">{activeExerciseData.description}</p>
                             </div>
 
                             {/* Timer Display */}
                             <div className="mb-8">
                                 <div className="glass-subtle rounded-3xl p-8 text-center">
                                     <div className="flex items-center justify-center gap-3 mb-2">
-                                        <Clock className="w-6 h-6 text-gray-500" />
-                                        <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">Time Remaining</span>
+                                        <Clock className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time Remaining</span>
                                     </div>
-                                    <div className="text-6xl font-serif font-bold text-gray-900">
+                                    <div className="text-6xl font-serif font-bold text-gray-900 dark:text-gray-100">
                                         {formatTime(timeRemaining)}
                                     </div>
-                                    <div className="mt-4 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    <div className="mt-4 w-full bg-gray-200 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                                         <div
                                             className={`h-full bg-gradient-to-r ${activeExerciseData.gradient} transition-all duration-1000`}
                                             style={{ width: `${((activeExerciseData.duration * 60 - timeRemaining) / (activeExerciseData.duration * 60)) * 100}%` }}
@@ -362,9 +360,9 @@ const Wellness = () => {
                                 <button
                                     onClick={toggleMute}
                                     disabled={!youtubePlayer}
-                                    className="w-14 h-14 glass-subtle rounded-full flex items-center justify-center hover:bg-white/80 transition-all disabled:opacity-50"
+                                    className="w-14 h-14 glass-subtle rounded-full flex items-center justify-center hover:bg-white/80 dark:hover:bg-white/20 transition-all disabled:opacity-50"
                                 >
-                                    {isMuted ? <VolumeX className="w-5 h-5 text-gray-700" /> : <Volume2 className="w-5 h-5 text-gray-700" />}
+                                    {isMuted ? <VolumeX className="w-5 h-5 text-gray-700 dark:text-gray-300" /> : <Volume2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />}
                                 </button>
 
                             </div>

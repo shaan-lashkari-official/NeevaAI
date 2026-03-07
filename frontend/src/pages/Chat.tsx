@@ -3,24 +3,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Send, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { getChatMessages, firestoreTimestampToDate } from '@/lib/firestore';
 
 const Chat = () => {
+    const { user } = useAuth();
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<any[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
 
     const { data: chatHistory, isLoading: isLoading } = useQuery({
-        queryKey: ['chatHistory'],
+        queryKey: ['chatHistory', user?.uid],
         queryFn: async () => {
-            try {
-                const response = await api.get('/chat/history?limit=50');
-                return response.data.reverse();
-            } catch (error) {
-                console.error('Chat history error:', error);
-                throw error;
-            }
+            if (!user?.uid) return [];
+            return getChatMessages(user.uid);
         },
+        enabled: !!user?.uid,
         retry: 1,
     });
 
@@ -83,8 +82,8 @@ const Chat = () => {
                         <Sparkles className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-serif font-bold text-gray-900">Chat with Neeva</h1>
-                        <p className="text-sm text-gray-500 font-medium">Your AI wellness companion, available 24/7</p>
+                        <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-gray-100">Chat with Neeva</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Your AI wellness companion, available 24/7</p>
                     </div>
                 </div>
             </motion.div>
@@ -96,13 +95,13 @@ const Chat = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="glass p-8 rounded-[2rem]"
                 >
-                    <p className="text-base font-medium text-gray-700 mb-4">Start a conversation:</p>
+                    <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-4">Start a conversation:</p>
                     <div className="flex flex-wrap gap-3">
                         {conversationStarters.map((starter, index) => (
                             <button
                                 key={index}
                                 onClick={() => setMessage(starter)}
-                                className="px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-600 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300 shadow-sm hover:shadow-md"
+                                className="px-6 py-3 rounded-full bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-all duration-300 shadow-sm hover:shadow-md"
                             >
                                 {starter}
                             </button>
@@ -130,8 +129,8 @@ const Chat = () => {
                                     className={`max-w-[80%] px-6 py-4 rounded-3xl shadow-sm ${msg.role === 'user'
                                         ? 'gradient-purple text-white rounded-tr-none'
                                         : msg.isError
-                                            ? 'bg-red-50 text-red-600 border border-red-100 rounded-tl-none'
-                                            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+                                            ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-tl-none'
+                                            : 'bg-white dark:bg-white/10 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-white/10 rounded-tl-none'
                                         }`}
                                 >
                                     {msg.isError && <AlertCircle className="w-5 h-5 mb-2" />}
@@ -147,7 +146,7 @@ const Chat = () => {
                                 animate={{ opacity: 1 }}
                                 className="flex justify-start"
                             >
-                                <div className="bg-white px-6 py-4 rounded-3xl rounded-tl-none border border-gray-100 shadow-sm">
+                                <div className="bg-white dark:bg-white/10 px-6 py-4 rounded-3xl rounded-tl-none border border-gray-100 dark:border-white/10 shadow-sm">
                                     <div className="flex gap-1">
                                         <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                         <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -169,7 +168,7 @@ const Chat = () => {
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Type your message..."
-                    className="flex-1 px-6 py-4 bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 text-lg"
+                    className="flex-1 px-6 py-4 bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
                 />
                 <button
                     onClick={handleSend}

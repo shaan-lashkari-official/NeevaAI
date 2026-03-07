@@ -4,9 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
+_api_key = os.environ.get("GROQ_API_KEY")
+client = Groq(api_key=_api_key) if _api_key else None
 
 def get_personalized_system_prompt(user_data: dict) -> str:
     """Generate a personalized system prompt based on user's onboarding data."""
@@ -42,10 +41,12 @@ Your goal is to provide a safe space for users to express their feelings.
     return base_prompt
 
 def get_chat_response(message_history: list, user_data: dict = None) -> str:
+    if not client:
+        return "AI chat is not configured yet. Please set the GROQ_API_KEY environment variable."
     try:
         system_prompt = get_personalized_system_prompt(user_data or {})
         messages = [{"role": "system", "content": system_prompt}] + message_history
-        
+
         chat_completion = client.chat.completions.create(
             messages=messages,
             model="llama-3.3-70b-versatile",
@@ -63,6 +64,8 @@ def get_mood_insights(mood_logs: list) -> str:
     for log in mood_logs:
         prompt += f"- Mood: {log.mood_level}/5, Note: {log.notes}\n"
         
+    if not client:
+        return "Keep tracking your mood to see more insights!"
     try:
         chat_completion = client.chat.completions.create(
             messages=[

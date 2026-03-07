@@ -45,12 +45,12 @@ const Crisis = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA]">
+        <div className="min-h-screen bg-[#FAFAFA] dark:bg-transparent">
             <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8">
                 {/* Header */}
                 <div className="animate-in">
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Crisis Support</h1>
-                    <p className="text-lg text-gray-600">Immediate help is available 24/7</p>
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-2">Crisis Support</h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-400">Immediate help is available 24/7</p>
                 </div>
 
                 {/* Emergency Alert */}
@@ -70,8 +70,8 @@ const Crisis = () => {
                 </div>
 
                 {/* Immediate Help */}
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 animate-in">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Immediate Help</h2>
+                <div className="bg-white dark:bg-white/5 rounded-3xl p-6 md:p-8 border border-gray-100 dark:border-white/10 animate-in">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Immediate Help</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <a
                             href="tel:988"
@@ -91,15 +91,15 @@ const Crisis = () => {
                 </div>
 
                 {/* All Resources */}
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 animate-in">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Crisis Resources</h2>
+                <div className="bg-white dark:bg-white/5 rounded-3xl p-6 md:p-8 border border-gray-100 dark:border-white/10 animate-in">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Crisis Resources</h2>
                     <div className="space-y-4">
                         {resources.map((resource, index) => (
-                            <div key={index} className="border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition-colors duration-200">
+                            <div key={index} className="border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:border-gray-300 dark:hover:border-white/20 transition-colors duration-200">
                                 <div className="mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{resource.name}</h3>
-                                    <p className="text-sm text-gray-600 mb-3">{resource.description}</p>
-                                    <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{resource.name}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{resource.description}</p>
+                                    <span className="inline-block px-3 py-1 bg-green-100 dark:bg-green-500/10 text-green-800 dark:text-green-400 text-xs font-medium rounded-full">
                                         Available 24/7
                                     </span>
                                 </div>
@@ -116,7 +116,7 @@ const Crisis = () => {
                                     {resource.text && (
                                         <a
                                             href={`sms:${resource.text.split(' ').pop()}`}
-                                            className="flex items-center gap-2 bg-gray-100 text-gray-900 py-2.5 px-5 rounded-xl font-medium hover:bg-gray-200 transition-colors duration-200"
+                                            className="flex items-center gap-2 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-gray-100 py-2.5 px-5 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition-colors duration-200"
                                         >
                                             <MessageSquare size={16} />
                                             {resource.text}

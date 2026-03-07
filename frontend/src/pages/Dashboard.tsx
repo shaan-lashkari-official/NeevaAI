@@ -1,29 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Heart, MessageCircle, Sparkles, ArrowRight, Zap, Calendar, Target, Plus } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import CircularText from '@/components/CircularText';
+import { getMoodLogs, getExerciseHistory } from '@/lib/firestore';
+import { computeMoodStats, computeExerciseStats } from '@/lib/stats';
 
 const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
     const { data: moodStats } = useQuery({
-        queryKey: ['moodStats'],
+        queryKey: ['moodStats', user?.uid],
         queryFn: async () => {
-            const response = await api.get('/mood/stats');
-            return response.data;
+            if (!user?.uid) return null;
+            const logs = await getMoodLogs(user.uid);
+            return computeMoodStats(logs as any);
         },
+        enabled: !!user?.uid,
     });
 
     const { data: exerciseStats } = useQuery({
-        queryKey: ['exerciseStats'],
+        queryKey: ['exerciseStats', user?.uid],
         queryFn: async () => {
-            const response = await api.get('/exercises/stats');
-            return response.data;
+            if (!user?.uid) return null;
+            const exercises = await getExerciseHistory(user.uid);
+            return computeExerciseStats(exercises as any);
         },
+        enabled: !!user?.uid,
     });
 
     const getGreeting = () => {
@@ -63,13 +68,13 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center md:text-left relative z-10"
             >
-                <h1 className="text-6xl md:text-7xl font-serif font-bold mb-4 text-gray-900 tracking-tight leading-tight">
+                <h1 className="text-6xl md:text-7xl font-serif font-bold mb-4 text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
                     {getGreeting()}, <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-500 italic pr-2">
                         {user?.name?.split(' ')[0] || 'Friend'}
                     </span>
                 </h1>
-                <p className="text-xl text-gray-500 max-w-2xl font-light">
+                <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl font-light">
                     {hasData
                         ? "Your wellness journey is unfolding beautifully. Let's continue the momentum."
                         : "Every great journey begins with a single step. We're here to guide you."}
@@ -83,13 +88,13 @@ const Dashboard = () => {
                 transition={{ delay: 0.2 }}
                 className="glass-strong rounded-full p-2 max-w-2xl shadow-xl flex items-center gap-4 pr-4 group hover:shadow-2xl transition-all duration-500"
             >
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400 dark:text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-600 dark:group-hover:bg-purple-500/20 transition-colors">
                     <Sparkles className="w-5 h-5" />
                 </div>
                 <input
                     type="text"
                     placeholder="How are you feeling right now?"
-                    className="flex-1 bg-transparent border-none outline-none text-lg text-gray-700 placeholder-gray-400 font-medium"
+                    className="flex-1 bg-transparent border-none outline-none text-lg text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 font-medium"
                 />
                 <button className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center hover:scale-110 transition-transform">
                     <ArrowRight className="w-5 h-5" />
@@ -179,11 +184,11 @@ const Dashboard = () => {
 
                         {(exerciseStats?.sessions_completed || 0) > 0 ? (
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/50 p-4 rounded-2xl">
+                                <div className="bg-white/50 dark:bg-white/10 p-4 rounded-2xl">
                                     <p className="text-3xl font-bold text-teal-800">{exerciseStats?.sessions_completed || 0}</p>
                                     <p className="text-teal-600/80 text-sm font-medium">Sessions</p>
                                 </div>
-                                <div className="bg-white/50 p-4 rounded-2xl">
+                                <div className="bg-white/50 dark:bg-white/10 p-4 rounded-2xl">
                                     <p className="text-3xl font-bold text-teal-800">{exerciseStats?.total_minutes || 0}</p>
                                     <p className="text-teal-600/80 text-sm font-medium">Minutes</p>
                                 </div>
@@ -203,16 +208,16 @@ const Dashboard = () => {
                 {/* Chat Card */}
                 <motion.div
                     variants={item}
-                    className="bento-card bg-[#f0f4ff] p-8 text-gray-800 relative overflow-hidden group cursor-pointer border border-blue-100"
+                    className="bento-card bg-[#f0f4ff] dark:bg-blue-950/30 p-8 text-gray-800 dark:text-gray-100 relative overflow-hidden group cursor-pointer border border-blue-100 dark:border-blue-800/30"
                     onClick={() => navigate('/chat')}
                 >
                     <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-200/50 rounded-full blur-3xl animate-pulse-slow" />
                     <div className="relative z-10 h-full flex flex-col">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm text-blue-600">
+                        <div className="w-12 h-12 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-sm text-blue-600">
                             <MessageCircle className="w-6 h-6" />
                         </div>
                         <h3 className="text-xl font-serif font-bold mb-2">AI Chat</h3>
-                        <p className="text-gray-500 text-sm mb-6 flex-1">24/7 emotional support companion.</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 flex-1">24/7 emotional support companion.</p>
                         <div className="flex items-center gap-2 text-blue-600 text-sm font-bold group-hover:gap-3 transition-all">
                             Start chat
                             <ArrowRight className="w-4 h-4" />
@@ -243,9 +248,9 @@ const Dashboard = () => {
                 {/* Progress Card */}
                 <motion.div
                     variants={item}
-                    className="md:col-span-2 bento-card bg-white p-8 border border-gray-100"
+                    className="md:col-span-2 bento-card bg-white dark:bg-white/5 p-8 border border-gray-100 dark:border-white/10"
                 >
-                    <h3 className="text-2xl font-serif font-bold text-gray-900 mb-8">Today's Goals</h3>
+                    <h3 className="text-2xl font-serif font-bold text-gray-900 dark:text-gray-100 mb-8">Today's Goals</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Daily wellness check', count: '0/3', color: 'bg-purple-500', width: '30%' },
@@ -254,10 +259,10 @@ const Dashboard = () => {
                         ].map((goal, idx) => (
                             <div key={idx}>
                                 <div className="flex justify-between text-sm mb-3">
-                                    <span className="text-gray-700 font-medium">{goal.label}</span>
-                                    <span className="text-gray-400 font-mono">{goal.count}</span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{goal.label}</span>
+                                    <span className="text-gray-400 dark:text-gray-500 font-mono">{goal.count}</span>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-3 overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: goal.width }}

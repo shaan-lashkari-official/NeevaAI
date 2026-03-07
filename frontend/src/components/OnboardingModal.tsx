@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Check } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { updateUserOnboarding } from '@/lib/firestore';
 
 interface OnboardingData {
     dailyLife: string;
@@ -14,7 +14,7 @@ interface OnboardingData {
 }
 
 const OnboardingModal = () => {
-    const { user, fetchUser } = useAuth();
+    const { user, refreshUserProfile } = useAuth();
     const [step, setStep] = useState(0);
     const [data, setData] = useState<OnboardingData>({
         dailyLife: '',
@@ -27,10 +27,10 @@ const OnboardingModal = () => {
 
     const updateOnboardingMutation = useMutation({
         mutationFn: async (data: OnboardingData) => {
-            await api.post('/users/onboarding', data);
+            await updateUserOnboarding(user!.uid, data);
         },
         onSuccess: async () => {
-            await fetchUser();
+            await refreshUserProfile();
             setIsOpen(false);
         },
     });
@@ -91,7 +91,7 @@ const OnboardingModal = () => {
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-lg bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl overflow-hidden"
+                className="w-full max-w-lg bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
             >
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
@@ -99,11 +99,11 @@ const OnboardingModal = () => {
                             {questions.map((_, i) => (
                                 <div
                                     key={i}
-                                    className={`h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'w-8 bg-purple-600' : 'w-2 bg-gray-200'}`}
+                                    className={`h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'w-8 bg-purple-600' : 'w-2 bg-gray-200 dark:bg-gray-700'}`}
                                 />
                             ))}
                         </div>
-                        <span className="text-sm font-medium text-gray-500">
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                             {step + 1}/{questions.length}
                         </span>
                     </div>
@@ -116,14 +116,14 @@ const OnboardingModal = () => {
                             exit={{ x: -20, opacity: 0 }}
                             className="min-h-[300px]"
                         >
-                            <h2 className="text-3xl font-bold text-gray-900 mb-2">{currentQuestion.title}</h2>
-                            <p className="text-gray-600 mb-6 text-lg">{currentQuestion.description}</p>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{currentQuestion.title}</h2>
+                            <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">{currentQuestion.description}</p>
 
                             {currentQuestion.type === 'text' && (
                                 <textarea
                                     value={data.dailyLife}
                                     onChange={(e) => setData({ ...data, dailyLife: e.target.value })}
-                                    className="w-full h-32 p-4 bg-white/50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none resize-none text-lg"
+                                    className="w-full h-32 p-4 bg-white/50 dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none resize-none text-lg text-gray-900 dark:text-gray-100"
                                     placeholder={currentQuestion.placeholder}
                                 />
                             )}
@@ -136,7 +136,7 @@ const OnboardingModal = () => {
                                         max={currentQuestion.max}
                                         value={data.stressLevel}
                                         onChange={(e) => setData({ ...data, stressLevel: parseInt(e.target.value) })}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
                                     />
                                     <div className="mt-4 text-center text-4xl font-bold text-purple-600">
                                         {data.stressLevel}
@@ -156,8 +156,8 @@ const OnboardingModal = () => {
                                                 setData({ ...data, goals: newGoals });
                                             }}
                                             className={`p-4 text-left rounded-xl border transition-all duration-200 flex justify-between items-center ${data.goals.includes(option)
-                                                ? 'bg-purple-50 border-purple-500 text-purple-700'
-                                                : 'bg-white/50 border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-purple-50 dark:bg-purple-500/10 border-purple-500 dark:border-purple-400 text-purple-700 dark:text-purple-300'
+                                                : 'bg-white/50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
                                                 }`}
                                         >
                                             <span className="font-medium">{option}</span>
@@ -174,8 +174,8 @@ const OnboardingModal = () => {
                                             key={option}
                                             onClick={() => setData({ ...data, [currentQuestion.field]: option })}
                                             className={`p-4 text-left rounded-xl border transition-all duration-200 flex justify-between items-center ${data[currentQuestion.field as keyof OnboardingData] === option
-                                                ? 'bg-purple-50 border-purple-500 text-purple-700'
-                                                : 'bg-white/50 border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-purple-50 dark:bg-purple-500/10 border-purple-500 dark:border-purple-400 text-purple-700 dark:text-purple-300'
+                                                : 'bg-white/50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
                                                 }`}
                                         >
                                             <span className="font-medium">{option}</span>

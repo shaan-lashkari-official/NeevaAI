@@ -1,85 +1,95 @@
-from typing import Any, List
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.api import deps
-from app.models import ChatMessage, User
-from app.schemas import ChatMessage as ChatMessageSchema, ChatRequest
-from app.services import ai
+from pydantic import BaseModel
+from app.api.deps import get_current_user
+from app.core.firebase_admin import get_firestore_client
+from app.services.ai import get_chat_response
+from google.cloud.firestore import SERVER_TIMESTAMP
 import traceback
 
 router = APIRouter()
 
-@router.post("/", response_model=ChatMessageSchema)
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    role: str
+    content: str
+    created_at: Any = None
+
+@router.post("/", response_model=ChatResponse)
 def chat_with_neeva(
-    *,
-    db: Session = Depends(deps.get_db),
     chat_request: ChatRequest,
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
+    current_user: dict = Depends(get_current_user),
+):
     try:
+        uid = current_user["uid"]
+        fdb = get_firestore_client()
+
         # 1. Save user message
-        user_msg = ChatMessage(
-            user_id=current_user.id,
-            role="user",
-            content=chat_request.message
-        )
-        db.add(user_msg)
-        db.commit()
-        
-        # 2. Get conversation history (last 10 messages)
-        history = (
-            db.query(ChatMessage)
-            .filter(ChatMessage.user_id == current_user.id)
-            .order_by(ChatMessage.created_at.desc())
+        user_msg_ref = fdb.collection("users").document(uid).collection("chat_messages").add({
+            "role": "user",
+            "content": chat_request.message,
+            "created_at": SERVER_TIMESTAMP,
+        })
+
+        # 2. Get last 10 messages for context
+        msgs_query = (
+            fdb.collection("users").document(uid).collection("chat_messages")
+            .order_by("created_at", direction="DESCENDING")
             .limit(10)
-            .all()
         )
-        history.reverse() # Oldest first
-        
-        formatted_history = [{"role": msg.role, "content": msg.content} for msg in history]
-        
-        # 3. Get user's onboarding data for personalization
-        user_context = current_user.onboarding_data or {}
-        
-        # 4. Generate AI response with personalization
-        ai_response_text = ai.get_chat_response(formatted_history, user_context)
-        
+        msgs = list(msgs_query.stream())
+        msgs.reverse()
+        formatted_history = [{"role": m.to_dict()["role"], "content": m.to_dict()["content"]} for m in msgs]
+
+        # 3. Get onboarding data for personalization
+        user_doc = fdb.collection("users").document(uid).get()
+        user_context = {}
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            user_context = user_data.get("onboarding_data") or {}
+
+        # 4. Generate AI response
+        ai_response_text = get_chat_response(formatted_history, user_context)
+
         # 5. Save AI response
-        ai_msg = ChatMessage(
-            user_id=current_user.id,
-            role="assistant",
-            content=ai_response_text
-        )
-        db.add(ai_msg)
-        db.commit()
-        db.refresh(ai_msg)
-        
-        # Return as dict to avoid ORM issues
-        return {
-            "id": ai_msg.id,
-            "user_id": ai_msg.user_id,
-            "role": ai_msg.role,
-            "content": ai_msg.content,
-            "created_at": ai_msg.created_at
-        }
+        fdb.collection("users").document(uid).collection("chat_messages").add({
+            "role": "assistant",
+            "content": ai_response_text,
+            "created_at": SERVER_TIMESTAMP,
+        })
+
+        return ChatResponse(role="assistant", content=ai_response_text)
+
     except Exception as e:
         print(f"Chat endpoint error: {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/history", response_model=List[ChatMessageSchema])
+@router.get("/history")
 def get_chat_history(
-    db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    messages = (
-        db.query(ChatMessage)
-        .filter(ChatMessage.user_id == current_user.id)
-        .order_by(ChatMessage.created_at.desc())
-        .offset(skip)
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["uid"]
+    fdb = get_firestore_client()
+
+    msgs_query = (
+        fdb.collection("users").document(uid).collection("chat_messages")
+        .order_by("created_at", direction="DESCENDING")
         .limit(limit)
-        .all()
     )
-    return messages
+    msgs = list(msgs_query.stream())
+    msgs.reverse()
+
+    return [
+        {
+            "id": m.id,
+            "role": m.to_dict()["role"],
+            "content": m.to_dict()["content"],
+            "created_at": m.to_dict().get("created_at"),
+        }
+        for m in msgs
+    ]

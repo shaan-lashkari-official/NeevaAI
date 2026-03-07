@@ -21,7 +21,7 @@ const CircularText = ({ text, radius = 100, className = "", duration = 20 }: Cir
             {characters.map((char, i) => (
                 <span
                     key={i}
-                    className="absolute text-sm font-medium uppercase tracking-widest text-gray-500"
+                    className="absolute text-sm font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400"
                     style={{
                         transform: `rotate(${i * angleStep}deg) translateY(-${radius}px)`,
                         transformOrigin: "center center",
