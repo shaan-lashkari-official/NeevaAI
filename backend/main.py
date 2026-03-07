@@ -13,6 +13,7 @@ origins = [
     "http://localhost:3000",
     "https://neeva-ai.vercel.app",
     "https://neevaai.vercel.app",
+    "https://neeva-ai-eta.vercel.app",
 ]
 
 import os
