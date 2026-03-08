@@ -21,7 +21,7 @@ def init_firebase():
     )
 
     if service_account_json:
-        cred = credentials.Certificate(json.loads(service_account_json))
+        cred = credentials.Certificate(json.loads(service_account_json, strict=False))
     elif os.path.exists(service_account_path):
         cred = credentials.Certificate(service_account_path)
     else:
