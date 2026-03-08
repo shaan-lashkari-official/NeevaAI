@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from dotenv import load_dotenv
@@ -13,14 +14,18 @@ def init_firebase():
     if _app:
         return
 
-    # Try JSON env var first (for Vercel/production), then file path
+    # Try base64-encoded JSON first, then raw JSON, then file path
+    service_account_b64 = os.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64")
     service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
     service_account_path = os.getenv(
         "FIREBASE_SERVICE_ACCOUNT_PATH",
         os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "neeva-ai-4b521-firebase-adminsdk-fbsvc-828e7aec21.json"),
     )
 
-    if service_account_json:
+    if service_account_b64:
+        decoded = base64.b64decode(service_account_b64).decode("utf-8")
+        cred = credentials.Certificate(json.loads(decoded))
+    elif service_account_json:
         cred = credentials.Certificate(json.loads(service_account_json, strict=False))
     elif os.path.exists(service_account_path):
         cred = credentials.Certificate(service_account_path)
