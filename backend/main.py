@@ -38,4 +38,5 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    from app.core.firebase_admin import _app
+    return {"status": "healthy", "firebase": "initialized" if _app else "NOT initialized"}
